@@ -32,6 +32,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 document.getElementById("fechaVenta").innerText = data.fechaVenta || "No vendida";
 
                 productoInfo.classList.remove("hidden");
+
+                document.querySelector(".container").classList.add("horizontal");
+
             })
             .catch(error => {
                 console.error("Error en la solicitud:", error);
