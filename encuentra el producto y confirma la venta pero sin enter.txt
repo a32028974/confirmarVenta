@@ -1,0 +1,307 @@
+este es el script de el google sheet
+
+
+function doGet(e) {
+  try {
+    var sheet = SpreadsheetApp.openById("1ZPb8ULAwAewVr9y9lxl_22bFfosjob0zO5_mLr09Rf0").getActiveSheet();
+    var data = sheet.getDataRange().getValues();
+
+    if (!e.parameter.producto) {
+      return responseError("ID de producto no recibido");
+    }
+
+    var productoID = String(e.parameter.producto).trim();
+    var productoEncontrado = null;
+
+    for (var i = 1; i < data.length; i++) {  
+      var idEnSheet = String(data[i][0]).trim();
+      if (idEnSheet === productoID) { 
+        productoEncontrado = data[i];
+        break;
+      }
+    }
+
+    if (!productoEncontrado) {
+      return responseError("Producto no encontrado en la base de datos");
+    }
+
+    var fechaVenta = productoEncontrado[7] ? new Date(productoEncontrado[7]).toLocaleDateString("es-AR") : "No vendida";
+
+    return responseSuccess({
+      marca: productoEncontrado[1] || "No disponible",
+      modelo: productoEncontrado[2] || "No disponible",
+      color: productoEncontrado[3] || "No disponible",
+      familia: productoEncontrado[4] || "No disponible",
+      precio: productoEncontrado[5] || "No disponible",
+      fechaVenta: fechaVenta
+    });
+
+  } catch (error) {
+    return responseError(error.toString());
+  }
+}
+
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.openById("1ZPb8ULAwAewVr9y9lxl_22bFfosjob0zO5_mLr09Rf0").getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+
+    if (!data.producto || !data.vendedor) {
+      return responseError("Faltan datos");
+    }
+
+    var datos = sheet.getDataRange().getValues();
+    var filaEncontrada = -1;
+
+    for (var i = 1; i < datos.length; i++) {
+      if (String(datos[i][0]).trim() === String(data.producto).trim()) { 
+        filaEncontrada = i + 1; 
+        break;
+      }
+    }
+
+    if (filaEncontrada === -1) {
+      return responseError("Producto no encontrado en la base de datos");
+    }
+
+    var celdaFecha = sheet.getRange(filaEncontrada, 8).getValue();
+    if (celdaFecha) {
+      return responseError("Este producto ya fue vendido el " + new Date(celdaFecha).toLocaleDateString("es-AR"));
+    }
+
+    sheet.getRange(filaEncontrada, 8).setValue(new Date()); 
+    sheet.getRange(filaEncontrada, 9).setValue(data.vendedor);
+
+    return responseSuccess({ mensaje: "Venta registrada correctamente" });
+
+  } catch (error) {
+    return responseError(error.toString());
+  }
+}
+
+// 🔹 Función para devolver respuestas exitosas con CORS habilitado
+function responseSuccess(data) {
+  return ContentService.createTextOutput(JSON.stringify({ status: "success", ...data }))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader("Access-Control-Allow-Origin", "*")
+    .setHeader("Access-Control-Allow-Methods", "GET, POST")
+    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+// 🔹 Función para devolver errores con CORS habilitado
+function responseError(mensaje) {
+  return ContentService.createTextOutput(JSON.stringify({ status: "error", mensaje: mensaje }))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader("Access-Control-Allow-Origin", "*")
+    .setHeader("Access-Control-Allow-Methods", "GET, POST")
+    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+este es el codigo de ventas.js
+
+document.addEventListener("DOMContentLoaded", function() {
+    const productoID = document.getElementById("productoID");
+    const buscarProductoBtn = document.getElementById("buscarProducto");
+    const productoInfo = document.getElementById("productoInfo");
+    const vendedorInput = document.getElementById("vendedor");
+    const confirmarVentaBtn = document.getElementById("confirmarVenta");
+    const limpiarBtn = document.getElementById("limpiar");
+
+    // 👉 URL de Google Apps Script (actualizada con la nueva implementación)
+    const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
+
+    function buscarProducto() {
+        const id = productoID.value.trim();
+        if (!id) {
+            alert("Ingrese un número de producto");
+            return;
+        }
+
+        fetch(`${googleSheetURL}?producto=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "error") {
+                    alert(`⚠️ Error: ${data.mensaje}`);
+                    return;
+                }
+
+                document.getElementById("marca").innerText = data.marca || "No disponible";
+                document.getElementById("modelo").innerText = data.modelo || "No disponible";
+                document.getElementById("color").innerText = data.color || "No disponible";
+                document.getElementById("familia").innerText = data.familia || "No disponible";
+                document.getElementById("precio").innerText = data.precio || "No disponible";
+                document.getElementById("fechaVenta").innerText = data.fechaVenta || "No vendida";
+
+                productoInfo.classList.remove("hidden");
+            })
+            .catch(error => {
+                console.error("Error en la solicitud:", error);
+                alert("⚠️ Hubo un error al buscar el producto.");
+            });
+    }
+
+    confirmarVentaBtn.addEventListener("click", function() {
+        const vendedor = vendedorInput.value.trim();
+        const id = productoID.value.trim();
+    
+        if (!id) {
+            alert("No hay producto seleccionado.");
+            return;
+        }
+        if (!vendedor) {
+            alert("Ingrese el nombre del vendedor.");
+            return;
+        }
+    
+        fetch(googleSheetURL, {
+            method: "POST",
+            mode: "no-cors",  // 👈 Evita el bloqueo de CORS
+            body: JSON.stringify({ producto: id, vendedor: vendedor }),
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(() => {
+            alert("✅ Venta registrada con éxito.");
+            productoInfo.classList.add("hidden");
+            productoID.value = "";
+            vendedorInput.value = "";
+        })
+        .catch(error => console.error("Error:", error));
+    });
+    
+
+    buscarProductoBtn.addEventListener("click", buscarProducto);
+    confirmarVentaBtn.addEventListener("click", confirmarVenta);
+});
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+este es el index
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Ventas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo del local -->
+        <img src="LOGO_OPTICA_V4_muy_chico.jpg" alt="Logo del Local" class="logo">
+
+        <h1>Registro de Ventas</h1>
+
+        <!-- Campo para ingresar número de producto -->
+        <label for="productoID">Número de Producto:</label>
+        <input type="number" id="productoID" placeholder="Ingrese el número y presione Enter">
+
+        <!-- Botón para buscar producto -->
+        <button id="buscarProducto">Buscar Producto</button>
+
+        <!-- Mostrar detalles del producto -->
+        <div id="productoInfo" class="hidden">
+            <h2>Detalles del Producto</h2>
+            <div class="detalle">
+                <p><strong>Marca:</strong> <span id="marca"></span></p>
+                <p><strong>Modelo:</strong> <span id="modelo"></span></p>
+                <p><strong>Color:</strong> <span id="color"></span></p>
+                <p><strong>Familia:</strong> <span id="familia"></span></p>
+                <p><strong>Precio:</strong> <span id="precio"></span></p>
+                <p><strong>Fecha de Venta:</strong> <span id="fechaVenta"></span></p>
+            </div>
+
+            <!-- Campo para ingresar el vendedor -->
+            <label for="vendedor">Nombre del Vendedor:</label>
+            <input type="text" id="vendedor" placeholder="Ingrese su nombre">
+
+            <!-- Botones de acción -->
+            <button id="confirmarVenta">Confirmar Venta</button>
+            <button id="limpiar">Limpiar</button>
+        </div>
+    </div>
+
+    <script src="ventas.js"></script>
+</body>
+</html>
+
+
+
+
+---------------------------------------------------------------------------------------------------------------
+
+
+este es el css
+
+
+/* Estilo general */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa; /* Fondo gris claro */
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+/* Estilo del logo */
+.logo {
+    width: 120px;
+    margin-bottom: 10px;
+}
+
+/* Títulos */
+h1, h2 {
+    color: #333;
+}
+
+/* Estilos para los campos de entrada y botones */
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Botones */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Ocultar detalles hasta que haya una búsqueda */
+.hidden {
+    display: none;
+}
+
+/* Estilo de la caja de detalles */
+.detalle {
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: left;
+    margin-top: 10px;
+}

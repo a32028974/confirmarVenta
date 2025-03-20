@@ -1,0 +1,64 @@
+/* Estilo general */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa; /* Fondo gris claro */
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+/* Estilo del logo */
+.logo {
+    width: 120px;
+    margin-bottom: 10px;
+}
+
+/* Títulos */
+h1, h2 {
+    color: #333;
+}
+
+/* Estilos para los campos de entrada y botones */
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Botones */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Ocultar detalles hasta que haya una búsqueda */
+.hidden {
+    display: none;
+}
+
+/* Estilo de la caja de detalles */
+.detalle {
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: left;
+    margin-top: 10px;
+}
