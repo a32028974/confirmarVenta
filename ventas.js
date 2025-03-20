@@ -66,7 +66,9 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .catch(error => console.error("Error:", error));
     });
-    
+    buscarProductoBtn.addEventListener("click", function() {
+    buscarProducto();
+});    
 
     productoID.addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
