@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const limpiarBtn = document.getElementById("limpiar");
 
     // 👉 URL de Google Apps Script (actualizada con la nueva implementación)
-    const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
+    const googleSheetURL = "https://script.google.com/macros/s/AKfycbz9za83nwBGpwnIqDa5soSW1BEaWrUMgtKPer_B36dsVcVfHdq71yXcLi8zeg5f9TD5nw/exec";
 
     function buscarProducto() {
         const id = productoID.value.trim();
