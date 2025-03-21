@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const limpiarBtn = document.getElementById("limpiar");
 
     // 👉 URL de Google Apps Script (actualizada con la nueva implementación)
-    const googleSheetURL = "https://script.google.com/macros/s/AKfycbxUaYFO97cPzl9q-E8hXfmtmQ9Mzf1mGeuNws1XKwq5imXwlqPYLFyI41IXnxJMPxFuUw/exec";
+    const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
 
     function buscarProducto() {
         const id = productoID.value.trim();
@@ -66,14 +66,16 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .catch(error => console.error("Error:", error));
     });
-    buscarProductoBtn.addEventListener("click", function() {
-    buscarProducto();
-});    
+    
+buscarProductoBtn.addEventListener("click", function() {
+    buscarProducto(); // Llamamos a la función de búsqueda al hacer clic
+});
 
-    productoID.addEventListener("keypress", function(event) {
-        if (event.key === "Enter") {
-            buscarProducto();
-        }
-    });
+productoID.addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        buscarProducto(); // Llamamos a la función de búsqueda al presionar "Enter"
+    }
+});
+
         confirmarVentaBtn.addEventListener("click", confirmarVenta);
 });
