@@ -4,13 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Registro de Ventas</title>
-  <link rel="stylesheet" href="style.css" />
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- Spinner CSS -->
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      color: #333;
+    }
+
+    input, button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px;
+      width: 90%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .detalle {
+      text-align: left;
+      margin: 20px 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     .spinner {
       display: inline-block;
       width: 20px;
@@ -24,15 +72,12 @@
     }
 
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <img src="LOGO_OPTICA_V4_muy_chico.jpg" alt="Logo del Local" class="logo" />
     <h1>Registro de Ventas</h1>
 
     <label for="productoID">Número de Producto:</label>
@@ -144,7 +189,7 @@
           headers: { "Content-Type": "application/json" }
         })
           .then(() => {
-            Swal.fire("¡Éxito!", "Venta registrada correctamente", "success");
+            Swal.fire("✅ Confirmado", "Venta registrada correctamente", "success");
             productoInfo.classList.add("hidden");
             productoID.value = "";
           })
@@ -162,6 +207,11 @@
         if (event.key === "Enter") buscarProducto();
       });
       confirmarVentaBtn.addEventListener("click", confirmarVenta);
+      limpiarBtn.addEventListener("click", () => {
+        productoID.value = "";
+        vendedorInput.value = "";
+        productoInfo.classList.add("hidden");
+      });
     });
   </script>
 </body>
