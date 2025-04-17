@@ -1,47 +1,168 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Ventas</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro de Ventas</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Spinner CSS -->
+  <style>
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #ccc;
+      border-top-color: #007bff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Logo del local -->
-        <img src="LOGO_OPTICA_V4_muy_chico.jpg" alt="Logo del Local" class="logo">
+  <div class="container">
+    <img src="LOGO_OPTICA_V4_muy_chico.jpg" alt="Logo del Local" class="logo" />
+    <h1>Registro de Ventas</h1>
 
-        <h1>Registro de Ventas</h1>
+    <label for="productoID">Número de Producto:</label>
+    <input type="number" id="productoID" placeholder="Ingrese el número y presione Enter" />
 
-        <!-- Campo para ingresar número de producto -->
-        <label for="productoID">Número de Producto:</label>
-        <input type="number" id="productoID" placeholder="Ingrese el número y presione Enter">
+    <button id="buscarProducto">Buscar Producto</button>
 
-        <!-- Botón para buscar producto -->
-        <button id="buscarProducto">Buscar Producto</button>
+    <div id="productoInfo" class="hidden">
+      <h2>Detalles del Producto</h2>
+      <div class="detalle">
+        <p><strong>Marca:</strong> <span id="marca"></span></p>
+        <p><strong>Modelo:</strong> <span id="modelo"></span></p>
+        <p><strong>Color:</strong> <span id="color"></span></p>
+        <p><strong>Familia:</strong> <span id="familia"></span></p>
+        <p><strong>Precio:</strong> <span id="precio"></span></p>
+        <p><strong>Fecha de Venta:</strong> <span id="fechaVenta"></span></p>
+      </div>
 
-        <!-- Mostrar detalles del producto -->
-        <div id="productoInfo" class="hidden">
-            <h2>Detalles del Producto</h2>
-            <div class="detalle">
-                <p><strong>Marca:</strong> <span id="marca"></span></p>
-                <p><strong>Modelo:</strong> <span id="modelo"></span></p>
-                <p><strong>Color:</strong> <span id="color"></span></p>
-                <p><strong>Familia:</strong> <span id="familia"></span></p>
-                <p><strong>Precio:</strong> <span id="precio"></span></p>
-                <p><strong>Fecha de Venta:</strong> <span id="fechaVenta"></span></p>
-            </div>
+      <label for="vendedor">Nombre del Vendedor:</label>
+      <input type="text" id="vendedor" placeholder="Ingrese su nombre" />
 
-            <!-- Campo para ingresar el vendedor -->
-            <label for="vendedor">Nombre del Vendedor:</label>
-            <input type="text" id="vendedor" placeholder="Ingrese su nombre">
-
-            <!-- Botones de acción -->
-            <button id="confirmarVenta">Confirmar Venta</button>
-            <button id="limpiar">Limpiar</button>
-        </div>
+      <button id="confirmarVenta">Confirmar Venta</button>
+      <button id="limpiar">Limpiar</button>
     </div>
+  </div>
 
-    <script src="ventas.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const productoID = document.getElementById("productoID");
+      const buscarProductoBtn = document.getElementById("buscarProducto");
+      const productoInfo = document.getElementById("productoInfo");
+      const vendedorInput = document.getElementById("vendedor");
+      const confirmarVentaBtn = document.getElementById("confirmarVenta");
+      const limpiarBtn = document.getElementById("limpiar");
+
+      const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
+
+      const vendedorGuardado = localStorage.getItem("vendedor");
+      if (vendedorGuardado) vendedorInput.value = vendedorGuardado;
+
+      function mostrarCargando() {
+        productoInfo.classList.remove("hidden");
+        document.getElementById("marca").innerHTML = '<span class="spinner"></span>Buscando...';
+        document.getElementById("modelo").innerText = "";
+        document.getElementById("color").innerText = "";
+        document.getElementById("familia").innerText = "";
+        document.getElementById("precio").innerText = "";
+        document.getElementById("fechaVenta").innerText = "";
+      }
+
+      function buscarProducto() {
+        const id = productoID.value.trim();
+        if (!id) {
+          Swal.fire("Falta el ID", "Ingresá un número de producto", "warning");
+          return;
+        }
+
+        mostrarCargando();
+        buscarProductoBtn.disabled = true;
+
+        fetch(`${googleSheetURL}?producto=${id}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === "error") {
+              Swal.fire("Error", data.mensaje, "error");
+              productoInfo.classList.add("hidden");
+              return;
+            }
+
+            document.getElementById("marca").innerText = data.marca || "No disponible";
+            document.getElementById("modelo").innerText = data.modelo || "No disponible";
+            document.getElementById("color").innerText = data.color || "No disponible";
+            document.getElementById("familia").innerText = data.familia || "No disponible";
+            document.getElementById("precio").innerText = data.precio || "No disponible";
+            document.getElementById("fechaVenta").innerText = data.fechaVenta || "No vendida";
+
+            productoInfo.classList.remove("hidden");
+          })
+          .catch(error => {
+            console.error("Error en la solicitud:", error);
+            Swal.fire("Ups...", "Hubo un error al buscar el producto", "error");
+            productoInfo.classList.add("hidden");
+          })
+          .finally(() => {
+            buscarProductoBtn.disabled = false;
+          });
+      }
+
+      function confirmarVenta() {
+        const vendedor = vendedorInput.value.trim();
+        const id = productoID.value.trim();
+
+        if (!id) {
+          Swal.fire("Falta producto", "No hay producto seleccionado", "warning");
+          return;
+        }
+        if (!vendedor) {
+          Swal.fire("Falta vendedor", "Ingresá el nombre del vendedor", "warning");
+          return;
+        }
+
+        localStorage.setItem("vendedor", vendedor);
+        confirmarVentaBtn.disabled = true;
+
+        fetch(googleSheetURL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({ producto: id, vendedor: vendedor }),
+          headers: { "Content-Type": "application/json" }
+        })
+          .then(() => {
+            Swal.fire("¡Éxito!", "Venta registrada correctamente", "success");
+            productoInfo.classList.add("hidden");
+            productoID.value = "";
+          })
+          .catch(error => {
+            console.error("Error:", error);
+            Swal.fire("Error", "No se pudo registrar la venta", "error");
+          })
+          .finally(() => {
+            confirmarVentaBtn.disabled = false;
+          });
+      }
+
+      buscarProductoBtn.addEventListener("click", buscarProducto);
+      productoID.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") buscarProducto();
+      });
+      confirmarVentaBtn.addEventListener("click", confirmarVenta);
+    });
+  </script>
 </body>
 </html>
