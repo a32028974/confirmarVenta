@@ -114,8 +114,23 @@
   </div>
 
   <script>
+    const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
     const historialLista = document.getElementById("historialLista");
     const historial = [];
+
+    const productoID = document.getElementById("productoID");
+    const buscarProductoBtn = document.getElementById("buscarProducto");
+    const productoInfo = document.getElementById("productoInfo");
+    const vendedorInput = document.getElementById("vendedor");
+    const confirmarVentaBtn = document.getElementById("confirmarVenta");
+    const limpiarBtn = document.getElementById("limpiar");
+    const imprimirBtn = document.getElementById("imprimir");
+    const whatsappBtn = document.getElementById("enviarWhatsapp");
+    const pdfBtn = document.getElementById("pdf");
+    const observaciones = document.getElementById("observaciones");
+
+    const vendedorGuardado = localStorage.getItem("vendedor");
+    if (vendedorGuardado) vendedorInput.value = vendedorGuardado;
 
     function agregarAHistorial(data) {
       historial.push(data);
@@ -124,31 +139,117 @@
       historialLista.appendChild(item);
     }
 
-    function copiarProducto() {
-      const producto = document.getElementById("productoID").value;
-      if (producto) {
-        navigator.clipboard.writeText(producto);
-        Swal.fire("Copiado", "Número copiado al portapapeles", "success");
-      }
+    function mostrarCargando() {
+      productoInfo.classList.remove("hidden");
+      document.getElementById("marca").innerHTML = '<span class="spinner"></span>Buscando...';
+      document.getElementById("modelo").innerText = "";
+      document.getElementById("color").innerText = "";
+      document.getElementById("familia").innerText = "";
+      document.getElementById("precio").innerText = "";
+      document.getElementById("fechaVenta").innerText = "";
     }
 
-    async function exportarPDF() {
+    function buscarProducto() {
+      const id = productoID.value.trim();
+      if (!id) return Swal.fire("Falta el ID", "Ingresá un número de producto", "warning");
+
+      mostrarCargando();
+      buscarProductoBtn.disabled = true;
+
+      fetch(`${googleSheetURL}?producto=${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "error") {
+            Swal.fire("Error", data.mensaje, "error");
+            productoInfo.classList.add("hidden");
+            return;
+          }
+          document.getElementById("marca").innerText = data.marca;
+          document.getElementById("modelo").innerText = data.modelo;
+          document.getElementById("color").innerText = data.color;
+          document.getElementById("familia").innerText = data.familia;
+          document.getElementById("precio").innerText = data.precio;
+          document.getElementById("fechaVenta").innerText = data.fechaVenta || "No vendida";
+        })
+        .catch(err => {
+          console.error(err);
+          Swal.fire("Error", "No se pudo buscar el producto", "error");
+        })
+        .finally(() => buscarProductoBtn.disabled = false);
+    }
+
+    function confirmarVenta() {
+      const id = productoID.value.trim();
+      const vendedor = vendedorInput.value.trim();
+      const obs = observaciones.value;
+
+      if (!id || !vendedor) return Swal.fire("Faltan datos", "Completá todos los campos", "warning");
+
+      const marca = document.getElementById("marca").innerText;
+      const modelo = document.getElementById("modelo").innerText;
+      const precio = document.getElementById("precio").innerText;
+
+      fetch(googleSheetURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ producto: id, vendedor, observaciones: obs, fecha: new Date().toLocaleString() })
+      });
+
+      Swal.fire("✅ Venta Confirmada", "Se registró correctamente", "success");
+      agregarAHistorial({ producto: id, marca, modelo, precio, vendedor });
+      localStorage.setItem("vendedor", vendedor);
+      productoInfo.classList.add("hidden");
+      productoID.value = "";
+      observaciones.value = "";
+    }
+
+    function exportarPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.setFontSize(12);
-      doc.text("Venta confirmada:", 10, 10);
+      doc.text("VENTA CONFIRMADA", 10, 10);
       doc.text(`Producto: ${productoID.value}`, 10, 20);
       doc.text(`Marca: ${document.getElementById("marca").innerText}`, 10, 30);
       doc.text(`Modelo: ${document.getElementById("modelo").innerText}`, 10, 40);
       doc.text(`Color: ${document.getElementById("color").innerText}`, 10, 50);
       doc.text(`Precio: ${document.getElementById("precio").innerText}`, 10, 60);
       doc.text(`Vendedor: ${document.getElementById("vendedor").value}`, 10, 70);
-      doc.text(`Observaciones: ${document.getElementById("observaciones").value}`, 10, 80);
+      doc.text(`Obs: ${document.getElementById("observaciones").value}`, 10, 80);
       doc.save("venta.pdf");
     }
 
-    // Integración de exportarPDF y historial
-    document.getElementById("pdf").addEventListener("click", exportarPDF);
+    function enviarPorWhatsapp() {
+      const mensaje = `VENTA CONFIRMADA%0AProducto: ${productoID.value}%0AMarca: ${document.getElementById("marca").innerText}%0AModelo: ${document.getElementById("modelo").innerText}%0AColor: ${document.getElementById("color").innerText}%0APrecio: ${document.getElementById("precio").innerText}%0AVendedor: ${vendedorInput.value}%0AObservaciones: ${encodeURIComponent(observaciones.value)}`;
+      const url = `https://wa.me/?text=${mensaje}`;
+      window.open(url, "_blank");
+    }
+
+    function imprimir() {
+      window.print();
+    }
+
+    function copiarProducto() {
+      const producto = productoID.value;
+      if (producto) {
+        navigator.clipboard.writeText(producto);
+        Swal.fire("Copiado", "Número copiado al portapapeles", "success");
+      }
+    }
+
+    function limpiar() {
+      productoID.value = "";
+      vendedorInput.value = "";
+      observaciones.value = "";
+      productoInfo.classList.add("hidden");
+    }
+
+    buscarProductoBtn.addEventListener("click", buscarProducto);
+    productoID.addEventListener("keypress", e => { if (e.key === "Enter") buscarProducto(); });
+    confirmarVentaBtn.addEventListener("click", confirmarVenta);
+    limpiarBtn.addEventListener("click", limpiar);
+    imprimirBtn.addEventListener("click", imprimir);
+    whatsappBtn.addEventListener("click", enviarPorWhatsapp);
+    pdfBtn.addEventListener("click", exportarPDF);
   </script>
 </body>
 </html>
