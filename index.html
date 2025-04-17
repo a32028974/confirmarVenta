@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Registro de Ventas</title>
 
-  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,7 +14,6 @@
       padding: 20px;
       background-color: #f9f9f9;
     }
-
     .container {
       max-width: 500px;
       margin: auto;
@@ -24,12 +22,10 @@
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-
     h1, h2 {
       color: #333;
     }
-
-    input, button {
+    input, button, textarea {
       display: block;
       margin: 10px auto;
       padding: 10px;
@@ -38,27 +34,22 @@
       border: 1px solid #ccc;
       font-size: 16px;
     }
-
     button {
       cursor: pointer;
       background-color: #007bff;
       color: white;
       border: none;
     }
-
     button:hover {
       background-color: #0056b3;
     }
-
     .detalle {
       text-align: left;
       margin: 20px 0;
     }
-
     .hidden {
       display: none;
     }
-
     .spinner {
       display: inline-block;
       width: 20px;
@@ -70,9 +61,15 @@
       margin-right: 5px;
       vertical-align: middle;
     }
-
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    #historial {
+      text-align: left;
+      margin-top: 30px;
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -84,6 +81,7 @@
     <input type="number" id="productoID" placeholder="Ingrese el número y presione Enter" />
 
     <button id="buscarProducto">Buscar Producto</button>
+    <button onclick="copiarProducto()">Copiar Número</button>
 
     <div id="productoInfo" class="hidden">
       <h2>Detalles del Producto</h2>
@@ -96,123 +94,61 @@
         <p><strong>Fecha de Venta:</strong> <span id="fechaVenta"></span></p>
       </div>
 
+      <label for="observaciones">Observaciones:</label>
+      <textarea id="observaciones" placeholder="Agregar notas u observaciones"></textarea>
+
       <label for="vendedor">Nombre del Vendedor:</label>
       <input type="text" id="vendedor" placeholder="Ingrese su nombre" />
 
       <button id="confirmarVenta">Confirmar Venta</button>
+      <button id="imprimir">Imprimir</button>
+      <button id="pdf">Exportar PDF</button>
+      <button id="enviarWhatsapp">Enviar por WhatsApp</button>
       <button id="limpiar">Limpiar</button>
+    </div>
+
+    <div id="historial">
+      <h2>Historial de Ventas</h2>
+      <ul id="historialLista"></ul>
     </div>
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const productoID = document.getElementById("productoID");
-      const buscarProductoBtn = document.getElementById("buscarProducto");
-      const productoInfo = document.getElementById("productoInfo");
-      const vendedorInput = document.getElementById("vendedor");
-      const confirmarVentaBtn = document.getElementById("confirmarVenta");
-      const limpiarBtn = document.getElementById("limpiar");
+    const historialLista = document.getElementById("historialLista");
+    const historial = [];
 
-      const googleSheetURL = "https://script.google.com/macros/s/AKfycbz5o2X3pxGy6v2Yd66oAm2oncuf7oC0sFtAF2N0gz21DSkNBpEHLzWMjRkHAmKxxrsO/exec";
+    function agregarAHistorial(data) {
+      historial.push(data);
+      const item = document.createElement("li");
+      item.textContent = `${data.producto} - ${data.marca} ${data.modelo} - $${data.precio} - ${data.vendedor}`;
+      historialLista.appendChild(item);
+    }
 
-      const vendedorGuardado = localStorage.getItem("vendedor");
-      if (vendedorGuardado) vendedorInput.value = vendedorGuardado;
-
-      function mostrarCargando() {
-        productoInfo.classList.remove("hidden");
-        document.getElementById("marca").innerHTML = '<span class="spinner"></span>Buscando...';
-        document.getElementById("modelo").innerText = "";
-        document.getElementById("color").innerText = "";
-        document.getElementById("familia").innerText = "";
-        document.getElementById("precio").innerText = "";
-        document.getElementById("fechaVenta").innerText = "";
+    function copiarProducto() {
+      const producto = document.getElementById("productoID").value;
+      if (producto) {
+        navigator.clipboard.writeText(producto);
+        Swal.fire("Copiado", "Número copiado al portapapeles", "success");
       }
+    }
 
-      function buscarProducto() {
-        const id = productoID.value.trim();
-        if (!id) {
-          Swal.fire("Falta el ID", "Ingresá un número de producto", "warning");
-          return;
-        }
+    async function exportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(12);
+      doc.text("Venta confirmada:", 10, 10);
+      doc.text(`Producto: ${productoID.value}`, 10, 20);
+      doc.text(`Marca: ${document.getElementById("marca").innerText}`, 10, 30);
+      doc.text(`Modelo: ${document.getElementById("modelo").innerText}`, 10, 40);
+      doc.text(`Color: ${document.getElementById("color").innerText}`, 10, 50);
+      doc.text(`Precio: ${document.getElementById("precio").innerText}`, 10, 60);
+      doc.text(`Vendedor: ${document.getElementById("vendedor").value}`, 10, 70);
+      doc.text(`Observaciones: ${document.getElementById("observaciones").value}`, 10, 80);
+      doc.save("venta.pdf");
+    }
 
-        mostrarCargando();
-        buscarProductoBtn.disabled = true;
-
-        fetch(`${googleSheetURL}?producto=${id}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.status === "error") {
-              Swal.fire("Error", data.mensaje, "error");
-              productoInfo.classList.add("hidden");
-              return;
-            }
-
-            document.getElementById("marca").innerText = data.marca || "No disponible";
-            document.getElementById("modelo").innerText = data.modelo || "No disponible";
-            document.getElementById("color").innerText = data.color || "No disponible";
-            document.getElementById("familia").innerText = data.familia || "No disponible";
-            document.getElementById("precio").innerText = data.precio || "No disponible";
-            document.getElementById("fechaVenta").innerText = data.fechaVenta || "No vendida";
-
-            productoInfo.classList.remove("hidden");
-          })
-          .catch(error => {
-            console.error("Error en la solicitud:", error);
-            Swal.fire("Ups...", "Hubo un error al buscar el producto", "error");
-            productoInfo.classList.add("hidden");
-          })
-          .finally(() => {
-            buscarProductoBtn.disabled = false;
-          });
-      }
-
-      function confirmarVenta() {
-        const vendedor = vendedorInput.value.trim();
-        const id = productoID.value.trim();
-
-        if (!id) {
-          Swal.fire("Falta producto", "No hay producto seleccionado", "warning");
-          return;
-        }
-        if (!vendedor) {
-          Swal.fire("Falta vendedor", "Ingresá el nombre del vendedor", "warning");
-          return;
-        }
-
-        localStorage.setItem("vendedor", vendedor);
-        confirmarVentaBtn.disabled = true;
-
-        fetch(googleSheetURL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({ producto: id, vendedor: vendedor }),
-          headers: { "Content-Type": "application/json" }
-        })
-          .then(() => {
-            Swal.fire("✅ Confirmado", "Venta registrada correctamente", "success");
-            productoInfo.classList.add("hidden");
-            productoID.value = "";
-          })
-          .catch(error => {
-            console.error("Error:", error);
-            Swal.fire("Error", "No se pudo registrar la venta", "error");
-          })
-          .finally(() => {
-            confirmarVentaBtn.disabled = false;
-          });
-      }
-
-      buscarProductoBtn.addEventListener("click", buscarProducto);
-      productoID.addEventListener("keypress", function (event) {
-        if (event.key === "Enter") buscarProducto();
-      });
-      confirmarVentaBtn.addEventListener("click", confirmarVenta);
-      limpiarBtn.addEventListener("click", () => {
-        productoID.value = "";
-        vendedorInput.value = "";
-        productoInfo.classList.add("hidden");
-      });
-    });
+    // Integración de exportarPDF y historial
+    document.getElementById("pdf").addEventListener("click", exportarPDF);
   </script>
 </body>
 </html>
