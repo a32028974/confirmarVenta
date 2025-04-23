@@ -104,6 +104,7 @@
       <button id="imprimir">Imprimir</button>
       <button id="pdf">Exportar PDF</button>
       <button id="enviarWhatsapp">Enviar por WhatsApp</button>
+      <button id="descargarExcel">Descargar Excel</button>
       <button id="limpiar">Limpiar</button>
     </div>
 
@@ -127,16 +128,31 @@
     const imprimirBtn = document.getElementById("imprimir");
     const whatsappBtn = document.getElementById("enviarWhatsapp");
     const pdfBtn = document.getElementById("pdf");
+    const excelBtn = document.getElementById("descargarExcel");
     const observaciones = document.getElementById("observaciones");
 
     const vendedorGuardado = localStorage.getItem("vendedor");
     if (vendedorGuardado) vendedorInput.value = vendedorGuardado;
 
+    const historialGuardado = JSON.parse(localStorage.getItem("historial"));
+    if (historialGuardado) {
+      historialGuardado.forEach(data => historial.push(data));
+      actualizarListaHistorial();
+    }
+
+    function actualizarListaHistorial() {
+      historialLista.innerHTML = "";
+      historial.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = `${item.producto} - ${item.marca} ${item.modelo} - $${item.precio} - ${item.vendedor}`;
+        historialLista.appendChild(li);
+      });
+    }
+
     function agregarAHistorial(data) {
       historial.push(data);
-      const item = document.createElement("li");
-      item.textContent = `${data.producto} - ${data.marca} ${data.modelo} - $${data.precio} - ${data.vendedor}`;
-      historialLista.appendChild(item);
+      localStorage.setItem("historial", JSON.stringify(historial));
+      actualizarListaHistorial();
     }
 
     function mostrarCargando() {
@@ -151,7 +167,9 @@
 
     function buscarProducto() {
       const id = productoID.value.trim();
-      if (!id) return Swal.fire("Falta el ID", "Ingresá un número de producto", "warning");
+      if (!id || isNaN(id) || Number(id) <= 0) {
+        return Swal.fire("ID inválido", "Ingresá un número válido", "warning");
+      }
 
       mostrarCargando();
       buscarProductoBtn.disabled = true;
@@ -193,7 +211,12 @@
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ producto: id, vendedor, observaciones: obs, fecha: new Date().toLocaleString() })
+        body: JSON.stringify({
+          producto: id,
+          vendedor,
+          observaciones: obs,
+          fecha: new Date().toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "short" })
+        })
       });
 
       Swal.fire("✅ Venta Confirmada", "Se registró correctamente", "success");
@@ -250,6 +273,9 @@
     imprimirBtn.addEventListener("click", imprimir);
     whatsappBtn.addEventListener("click", enviarPorWhatsapp);
     pdfBtn.addEventListener("click", exportarPDF);
+    excelBtn.addEventListener("click", () => {
+      window.open(googleSheetURL + "?action=export", "_blank");
+    });
   </script>
 </body>
 </html>
